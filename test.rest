@@ -1,20 +1,19 @@
 POST http://localhost:3000/auth/register
-
 Content-Type: application/json
+
 {
 "fullName" : "fiiwe barry",
-"email" : "fiiwebarry@gmail.com",
-"password" : "fiiwebarry"
+"email" : "ikpaprecious2@gmail.com",
+"password" : "12345"
 }
 
 
 ###
 
-# POST http://localhost:3000/auth/register
-   
-# Content-Type: application/json
-# {
-# "fullName" : "fiiwe barisanem",
-# "email" : "fiiwebarry@yahoo.com",
-# "password" : "barryfiiwe"
-# }
+POST http://localhost:3000/auth/login   
+Content-Type: application/json
+
+{
+"email" : "ikpaprecious2@gmail.com",
+"password" : "12345"
+}
