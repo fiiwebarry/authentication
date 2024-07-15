@@ -1,86 +1,89 @@
-const express = require('express');
-const bcrypt = require('bcrypt');
-const { sendEmail } = require('../utils/emailUtil');
-const { v4 } = require('uuid');
-const jwt = require('jsonwebtoken');
+const express = require("express");
+const bcrypt = require("bcrypt");
+const { sendEmail } = require("../utils/emailUtil");
+const { v4 } = require("uuid");
+const jwt = require("jsonwebtoken");
+const { userModel } = require("../models/userModel");
 
 const authRouter = express.Router();
 
 //register routes
-authRouter.post('/register', async (req, res) => {
+authRouter.post("/register", async (req, res) => {
   try {
     const { fullName, email, password } = req.body;
 
     // const hashedPassword = bcrypt.hashSync(password, saltRounds);
+    const hashedPassword = bcrypt.hashSync(password, 10);
+
     const token = v4();
 
-    // await userModel.create({
-    //   fullName,
-    //   email,
-    //   password,
-    //   authToken: token,
-    //   authPurpose: 'verify-email',
-    // });
+    await userModel.create({
+      fullName,
+      email,
+      password: hashedPassword,
+      authToken: token,
+      authPurpose: "verify-email",
+    });
 
     await sendEmail(
       email,
-      'Email Verification',
-      `Please Click on this link to verify your email: http://localhost:3000/auth/verify-email/${token}`
+      "Email Verification",
+      `${fullName} Please Click on this link to verify your email: http://localhost:3000/auth/verify-email/${token}`
     );
 
     res.status(201).send({
       isSuccessful: true,
-      message: 'User registered successfully',
+      message: "Kindly check your email to verify it",
     });
   } catch (error) {
     console.log(error);
     res.status(500).send({
       isSuccessful: false,
-      message: 'An error occurred during registration',
+      message: "An error occurred during registration",
     });
   }
 });
 
 //verify email routes
-authRouter.get('/verify-email/:token', async (req, res) => {
+authRouter.get("/verify-email/:token", async (req, res) => {
   try {
     const { token } = req.params;
 
     const doesUserExist = await userModel.exists({
       authToken: token,
-      authPurpose: 'verify-email',
+      authPurpose: "verify-email",
     });
 
     if (!doesUserExist) {
       res.status(404).send({
         isSuccessful: false,
-        message: 'user does not exist',
+        message: "user does not exist",
       });
       return;
     }
 
     await userModel.findOneAndUpdate({
       authToken: token,
-      authPurpose: 'verify-email',
+      authPurpose: "verify-email",
       isEmailVerified: true,
-      authToken: '',
-      authPurpose: '',
+      authToken: "",
+      authPurpose: "",
     });
 
     res.send({
       isSuccessful: true,
-      message: 'Email verified successfully',
+      message: "Email verified successfully",
     });
   } catch (error) {
     res.status(500).send({
       isSuccessful: false,
-      message: 'An error occurred during email verification',
+      message: "An error occurred during email verification",
     });
   }
 });
 
 //login routes
-authRouter.post('/login', async (req, res) => {
+authRouter.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await userModel.findOne({ email });
@@ -88,7 +91,7 @@ authRouter.post('/login', async (req, res) => {
     if (!user) {
       res.status(404).send({
         isSuccessful: false,
-        message: 'User not found',
+        message: "User not found",
       });
       return;
     }
@@ -98,7 +101,7 @@ authRouter.post('/login', async (req, res) => {
     if (!isPasswordValid) {
       res.status(400).send({
         isSuccessful: false,
-        message: 'Invalid Credentials',
+        message: "Invalid Credentials",
       });
       return;
     }
@@ -107,13 +110,13 @@ authRouter.post('/login', async (req, res) => {
       {
         userId: user._id,
         email: user.email,
-      }
-      // process.env.AUTH_KEY
+      },
+      process.env.AUTH_KEY
     );
 
     res.send({
       isSuccessful: true,
-      message: 'User logged in successfully',
+      message: "User logged in successfully",
       userDetails: {
         userId: user._id,
         fullName: user.fullName,
@@ -124,13 +127,13 @@ authRouter.post('/login', async (req, res) => {
   } catch (err) {
     res.status(500).send({
       isSuccessful: false,
-      message: 'Internal server error',
+      message: "Internal server error",
     });
   }
 });
 
 //forget password routes
-authRouter.post('/forget-password', async (req, res) => {
+authRouter.post("/forget-password", async (req, res) => {
   try {
     const { email } = req.body;
     const user = await userModel.findOne({ email });
@@ -138,7 +141,7 @@ authRouter.post('/forget-password', async (req, res) => {
     if (!user) {
       res.status(404).send({
         isSuccessful: false,
-        message: 'Email not found',
+        message: "Email not found",
       });
       return;
     }
@@ -154,24 +157,24 @@ authRouter.post('/forget-password', async (req, res) => {
 
     await sendEmail(
       email,
-      'Reset Password',
+      "Reset Password",
       `Please click on this link to reset your password: ${resetPasswordLink}`
     );
 
     res.send({
       isSuccessful: true,
-      message: 'Reset password link sent to your email',
+      message: "Reset password link sent to your email",
     });
   } catch (err) {
     res.status(500).send({
       isSuccessful: false,
-      message: 'Internal server error',
+      message: "Internal server error",
     });
   }
 });
 
 //reset password routes
-authRouter.post('/reset-password/:token', async (req, res) => {
+authRouter.post("/reset-password/:token", async (req, res) => {
   const { token } = req.params;
   const { newPassword } = req.body;
   try {
@@ -182,7 +185,7 @@ authRouter.post('/reset-password/:token', async (req, res) => {
     if (!userToken) {
       res.status(404).send({
         isSuccessful: false,
-        message: 'Invalid or expired token',
+        message: "Invalid or expired token",
       });
       return;
     }
@@ -192,7 +195,7 @@ authRouter.post('/reset-password/:token', async (req, res) => {
     if (!user) {
       res.status(404).send({
         isSuccessful: false,
-        message: 'User not found',
+        message: "User not found",
       });
       return;
     }
@@ -204,12 +207,12 @@ authRouter.post('/reset-password/:token', async (req, res) => {
 
     res.send({
       isSuccessful: true,
-      message: 'Password reset successfully',
+      message: "Password reset successfully",
     });
   } catch (err) {
     res.status(500).send({
       isSuccessful: false,
-      message: 'Internal server error',
+      message: "Internal server error",
     });
   }
 });
@@ -217,12 +220,12 @@ authRouter.post('/reset-password/:token', async (req, res) => {
 ///get user profile routes
 //first create a midleware to authenticate user
 const authenticateUser = async (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+  const token = req.header("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
     res.status(401).send({
       isSuccessful: false,
-      message: 'Access Denied. Token not provided',
+      message: "Access Denied. Token not provided",
     });
     return;
   }
@@ -234,17 +237,17 @@ const authenticateUser = async (req, res, next) => {
   } catch (err) {
     res.status(401).send({
       isSuccessful: false,
-      message: 'Invalid token',
+      message: "Invalid token",
     });
   }
 };
 
-authRouter.get('/profile', authenticateUser, async (req, res) => {
+authRouter.get("/profile", authenticateUser, async (req, res) => {
   try {
     if (!req.user) {
       res.status(404).send({
         isSuccessful: false,
-        message: 'User not found',
+        message: "User not found",
       });
       return;
     }
@@ -260,7 +263,7 @@ authRouter.get('/profile', authenticateUser, async (req, res) => {
   } catch (err) {
     res.status(500).send({
       isSuccessful: false,
-      message: 'Internal server error',
+      message: "Internal server error",
     });
   }
 });
